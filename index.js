@@ -22,6 +22,7 @@ class Canvas {
 }
 
 const sqr = n => n * n;
+const clamp = (n, min, max) => n < min ? min : n > max ? max : n;
 
 class Vec {
   constructor(x, y, z) {
@@ -39,8 +40,16 @@ class Vec {
     return new Vec(this.x / len, this.y / len, this.z / len);
   }
 
+  add(other) {
+    return new Vec(this.x + other.x, this.y + other.y, this.z + other.z);
+  }
+
   subtract(other) {
     return new Vec(this.x - other.x, this.y - other.y, this.z - other.z);
+  }
+
+  scale(n) {
+    return new Vec(this.x * n, this.y * n, this.z * n);
   }
 
   dot(other) {
@@ -70,6 +79,11 @@ class RGB {
     this.green = green;
     this.blue = blue;
     this.alpha = 255;
+  }
+
+  shade(factor) {
+    const f = clamp(factor, 0, 1);
+    return new RGB(this.red * f, this.green * f, this.blue * f);
   }
 }
 
@@ -141,6 +155,18 @@ class Film {
   }
 }
 
+class Light {
+  constructor(origin, power) {
+    this.origin = origin;
+    this.power = power;
+  }
+
+  illuminate(point) {
+    const distance = this.origin.subtract(point).length;
+    return this.power / sqr(distance);
+  }
+}
+
 (function() {
   const canvas = new Canvas(document.getElementById('canvas'));
 
@@ -153,6 +179,8 @@ class Film {
     new Sphere(new Vec(0, 5, 10), 2, RGB.green),
     new Sphere(new Vec(5, 3, 5), 2, RGB.red),
   ];
+
+  const light = new Light(new Vec(0, 15, 10), 100);
 
   render();
 
@@ -174,8 +202,12 @@ class Film {
           return min;
         }, { t: Infinity, sphere: null });
 
-        if (nearest.sphere) {
-          canvas.drawPixel(x, y, nearest.sphere.color);
+        const { t, sphere } = nearest;
+
+        if (sphere) {
+          const intersection = eye.add(direction.scale(t));
+          const color = sphere.color.shade(light.illuminate(intersection));
+          canvas.drawPixel(x, y, color);
         } else {
           canvas.drawPixel(x, y, RGB.black);
         }
