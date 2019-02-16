@@ -80,9 +80,21 @@ class Sphere {
     this.color = color;
   }
 
-  intersects(origin, line) {
+  intersect(origin, line) {
     const oc = origin.subtract(this.center);
-    return sqr(line.dot(oc)) >= sqr(oc.length) - sqr(this.radius);
+    const dot = line.dot(oc);
+    const sqrtTerm = sqr(dot) - (sqr(oc.length) - sqr(this.radius));
+
+    if (sqrtTerm < 0) {
+      return [];
+    } else if (sqrtTerm == 0) {
+      return [-dot];
+    }
+
+    return [
+      -dot + Math.sqrt(sqrtTerm),
+      -dot - Math.sqrt(sqrtTerm),
+    ];
   }
 }
 
@@ -137,12 +149,41 @@ class Film {
   const camera = new Camera(eye, film);
 
   const spheres = [
-    new Sphere(new Vec(5, 3, 5), 2, RGB.red),
-    new Sphere(new Vec(0, 5, 10), 2, RGB.green),
     new Sphere(new Vec(3, 0, 15), 2, RGB.blue),
+    new Sphere(new Vec(0, 5, 10), 2, RGB.green),
+    new Sphere(new Vec(5, 3, 5), 2, RGB.red),
   ];
 
   render();
+
+  function render() {
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const point = film.project(x / canvas.width, y / canvas.height);
+        const direction = point.subtract(eye).unit();
+
+        const nearest = spheres.reduce((min, sphere) => {
+          const ts = sphere.intersect(eye, direction).sort((a, b) => a - b);
+
+          for (let t of ts) {
+            if (t >= 0 && t < min.t) {
+              return { t, sphere };
+            }
+          }
+
+          return min;
+        }, { t: Infinity, sphere: null });
+
+        if (nearest.sphere) {
+          canvas.drawPixel(x, y, nearest.sphere.color);
+        } else {
+          canvas.drawPixel(x, y, RGB.black);
+        }
+      }
+    }
+
+    canvas.render();
+  }
 
   window.addEventListener('keyup', event => {
     switch (event.key) {
@@ -170,24 +211,4 @@ class Film {
 
     render();
   });
-
-  function render() {
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const point = film.project(x / canvas.width, y / canvas.height);
-        const direction = point.subtract(eye).unit();
-
-        for (let sphere of spheres) {
-          if (sphere.intersects(eye, direction)) {
-            canvas.drawPixel(x, y, sphere.color);
-            break;
-          }
-
-          canvas.drawPixel(x, y, RGB.black);
-        }
-      }
-    }
-
-    canvas.render();
-  }
 })()
