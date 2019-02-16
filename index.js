@@ -173,7 +173,7 @@ class Light {
     this.power = power;
   }
 
-  illuminate(point, spheres) {
+  illuminate(point, surface, spheres) {
     const ray = this.origin.subtract(point);
     const direction = ray.unit();
 
@@ -185,7 +185,8 @@ class Light {
       }
     }
 
-    return this.power / sqr(ray.length);
+    const cosine = surface.dot(direction) / surface.length;
+    return this.power * cosine / (4 * Math.PI * sqr(ray.length));
   }
 }
 
@@ -203,8 +204,8 @@ class Light {
   ];
 
   const lights = [
-    new Light(new Vec(1, 15, 2), 100),
-    new Light(new Vec(12, 5, 5), 50),
+    new Light(new Vec(1, 8, 0), 300),
+    new Light(new Vec(8, 5, 5), 300),
   ];
 
   render();
@@ -231,8 +232,10 @@ class Light {
 
         if (sphere) {
           const intersection = eye.add(direction.scale(t));
+          const normal = intersection.subtract(sphere.center);
+
           const power = lights.reduce((acc, light) => (
-            acc + light.illuminate(intersection, spheres)
+            acc + light.illuminate(intersection, normal, spheres)
           ), 0);
 
           canvas.drawPixel(x, y, sphere.color.shade(power));
