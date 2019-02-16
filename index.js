@@ -8,12 +8,12 @@ class Canvas {
     this.image = this.ctx.getImageData(0, 0, this.width, this.height);
   }
 
-  drawPixel(x, y, r, g, b, a) {
+  drawPixel(x, y, color) {
     let i = (x + y * this.height) << 2;
-    this.image.data[i] = r;
-    this.image.data[++i] = g;
-    this.image.data[++i] = b;
-    this.image.data[++i] = a;
+    this.image.data[i] = color.red;
+    this.image.data[++i] = color.green;
+    this.image.data[++i] = color.blue;
+    this.image.data[++i] = color.alpha;
   }
 
   render() {
@@ -48,10 +48,36 @@ class Vec {
   }
 }
 
+class RGB {
+  static get black() {
+    return new RGB(0, 0, 0);
+  }
+
+  static get red() {
+    return new RGB(255, 0, 0);
+  }
+
+  static get green() {
+    return new RGB(0, 255, 0);
+  }
+
+  static get blue() {
+    return new RGB(0, 0, 255);
+  }
+
+  constructor(red, green, blue) {
+    this.red = red;
+    this.green = green;
+    this.blue = blue;
+    this.alpha = 255;
+  }
+}
+
 class Sphere {
-  constructor(center, radius) {
+  constructor(center, radius, color) {
     this.center = center;
     this.radius = radius;
+    this.color = color;
   }
 
   intersects(origin, line) {
@@ -83,8 +109,9 @@ class Film {
   const film = new Film(new Vec(0, 0, 3), 6, 6);
 
   const spheres = [
-    new Sphere(new Vec(5, 3, 5), 2),
-    new Sphere(new Vec(1, 5, 10), 2),
+    new Sphere(new Vec(5, 3, 5), 2, RGB.red),
+    new Sphere(new Vec(0, 5, 10), 2, RGB.green),
+    new Sphere(new Vec(3, 0, 15), 2, RGB.blue),
   ];
 
   render();
@@ -128,11 +155,11 @@ class Film {
 
         for (let sphere of spheres) {
           if (sphere.intersects(eye, direction)) {
-            canvas.drawPixel(x, y, 255, 255, 255, 255);
+            canvas.drawPixel(x, y, sphere.color);
             break;
           }
 
-          canvas.drawPixel(x, y, 0, 0, 0, 255);
+          canvas.drawPixel(x, y, RGB.black);
         }
       }
     }
