@@ -128,6 +128,16 @@ class Camera {
     this.film.origin.x++;
   }
 
+  moveUp() {
+    this.eye.y++;
+    this.film.origin.y++;
+  }
+
+  moveDown() {
+    this.eye.y--;
+    this.film.origin.y--;
+  }
+
   moveForward() {
     this.eye.z++;
     this.film.origin.z++;
@@ -226,6 +236,7 @@ class Light {
         eye.z++;
         break;
       case 'a':
+      case 'ArrowLeft':
         camera.moveLeft();
         break;
       case 's':
@@ -235,7 +246,14 @@ class Light {
         eye.z--;
         break;
       case 'd':
+      case 'ArrowRight':
         camera.moveRight();
+        break;
+      case 'ArrowUp':
+        camera.moveUp();
+        break;
+      case 'ArrowDown':
+        camera.moveDown();
         break;
       default:
         return;
