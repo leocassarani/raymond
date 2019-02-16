@@ -86,6 +86,33 @@ class Sphere {
   }
 }
 
+class Camera {
+  constructor(eye, film) {
+    this.eye = eye;
+    this.film = film;
+  }
+
+  moveLeft() {
+    this.eye.x--;
+    this.film.origin.x--;
+  }
+
+  moveRight() {
+    this.eye.x++;
+    this.film.origin.x++;
+  }
+
+  moveForward() {
+    this.eye.z++;
+    this.film.origin.z++;
+  }
+
+  moveBack() {
+    this.eye.z--;
+    this.film.origin.z--;
+  }
+}
+
 class Film {
   constructor(origin, width, height) {
     this.origin = origin;
@@ -107,6 +134,7 @@ class Film {
 
   const eye = new Vec(3, 3, 0);
   const film = new Film(new Vec(0, 0, 3), 6, 6);
+  const camera = new Camera(eye, film);
 
   const spheres = [
     new Sphere(new Vec(5, 3, 5), 2, RGB.red),
@@ -119,26 +147,22 @@ class Film {
   window.addEventListener('keyup', event => {
     switch (event.key) {
       case 'w':
-        eye.z++;
-        film.origin.z++;
+        camera.moveForward();
         break;
       case 'W':
         eye.z++;
         break;
       case 'a':
-        eye.x--;
-        film.origin.x--;
+        camera.moveLeft();
         break;
       case 's':
-        eye.z--;
-        film.origin.z--;
+        camera.moveBack();
         break;
       case 'S':
         eye.z--;
         break;
       case 'd':
-        eye.x++;
-        film.origin.x++
+        camera.moveRight();
         break;
       default:
         return;
