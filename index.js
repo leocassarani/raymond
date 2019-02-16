@@ -165,15 +165,27 @@ class Film {
   }
 }
 
+const EPSILON = 1e-10;
+
 class Light {
   constructor(origin, power) {
     this.origin = origin;
     this.power = power;
   }
 
-  illuminate(point) {
-    const distance = this.origin.subtract(point).length;
-    return this.power / sqr(distance);
+  illuminate(point, spheres) {
+    const ray = this.origin.subtract(point);
+    const direction = ray.unit();
+
+    for (let sphere of spheres) {
+      if (sphere.intersect(point, direction).some(t => t >= EPSILON)) {
+        // If the shadow ray from the point to the light is occluded, this
+        // light does not contribute any power to the colour of the point.
+        return 0;
+      }
+    }
+
+    return this.power / sqr(ray.length);
   }
 }
 
@@ -185,12 +197,12 @@ class Light {
   const camera = new Camera(eye, film);
 
   const spheres = [
-    new Sphere(new Vec(3, 0, 15), 2, RGB.blue),
-    new Sphere(new Vec(0, 5, 10), 2, RGB.green),
-    new Sphere(new Vec(5, 3, 5), 2, RGB.red),
+    new Sphere(new Vec(2, 6, 8), 1, RGB.green),
+    new Sphere(new Vec(1, 6, 5), 1, RGB.blue),
+    new Sphere(new Vec(3, 0, 12), 5, RGB.red),
   ];
 
-  const light = new Light(new Vec(0, 15, 10), 100);
+  const light = new Light(new Vec(1, 15, 2), 100);
 
   render();
 
@@ -204,7 +216,7 @@ class Light {
           const ts = sphere.intersect(eye, direction).sort((a, b) => a - b);
 
           for (let t of ts) {
-            if (t >= 0 && t < min.t) {
+            if (t >= EPSILON && t < min.t) {
               return { t, sphere };
             }
           }
@@ -216,7 +228,7 @@ class Light {
 
         if (sphere) {
           const intersection = eye.add(direction.scale(t));
-          const color = sphere.color.shade(light.illuminate(intersection));
+          const color = sphere.color.shade(light.illuminate(intersection, spheres));
           canvas.drawPixel(x, y, color);
         } else {
           canvas.drawPixel(x, y, RGB.black);
