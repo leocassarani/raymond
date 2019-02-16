@@ -105,10 +105,8 @@ class Sphere {
       return [-dot];
     }
 
-    return [
-      -dot + Math.sqrt(sqrtTerm),
-      -dot - Math.sqrt(sqrtTerm),
-    ];
+    const sqrt = Math.sqrt(sqrtTerm);
+    return [-dot + sqrt, -dot - sqrt];
   }
 }
 
@@ -240,7 +238,7 @@ class Light {
 
           canvas.drawPixel(x, y, sphere.color.shade(power));
         } else {
-          canvas.drawPixel(x, y, RGB.black);
+          canvas.drawPixel(x, y, new RGB(180, 180, 180));
         }
       }
     }
