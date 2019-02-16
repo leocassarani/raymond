@@ -202,7 +202,10 @@ class Light {
     new Sphere(new Vec(3, 0, 12), 5, RGB.red),
   ];
 
-  const light = new Light(new Vec(1, 15, 2), 100);
+  const lights = [
+    new Light(new Vec(1, 15, 2), 100),
+    new Light(new Vec(12, 5, 5), 50),
+  ];
 
   render();
 
@@ -228,8 +231,11 @@ class Light {
 
         if (sphere) {
           const intersection = eye.add(direction.scale(t));
-          const color = sphere.color.shade(light.illuminate(intersection, spheres));
-          canvas.drawPixel(x, y, color);
+          const power = lights.reduce((acc, light) => (
+            acc + light.illuminate(intersection, spheres)
+          ), 0);
+
+          canvas.drawPixel(x, y, sphere.color.shade(power));
         } else {
           canvas.drawPixel(x, y, RGB.black);
         }
