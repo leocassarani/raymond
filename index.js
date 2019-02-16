@@ -9,7 +9,7 @@ class Canvas {
   }
 
   drawPixel(x, y, color) {
-    let i = (x + y * this.height) << 2;
+    let i = (x + y * this.width) << 2;
     this.image.data[i] = color.red;
     this.image.data[++i] = color.green;
     this.image.data[++i] = color.blue;
