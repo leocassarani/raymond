@@ -105,8 +105,9 @@ class Sphere {
       return [-dot];
     }
 
+    // Note: results are guaranteed to be returned sorted in ascending order.
     const sqrt = Math.sqrt(sqrtTerm);
-    return [-dot + sqrt, -dot - sqrt];
+    return [-dot - sqrt, -dot + sqrt];
   }
 }
 
@@ -215,7 +216,7 @@ class Light {
         const direction = point.subtract(eye).unit();
 
         const nearest = spheres.reduce((min, sphere) => {
-          const ts = sphere.intersect(eye, direction).sort((a, b) => a - b);
+          const ts = sphere.intersect(eye, direction);
 
           for (let t of ts) {
             if (t >= EPSILON && t < min.t) {
