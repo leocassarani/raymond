@@ -8,12 +8,17 @@ class Canvas {
     this.image = this.ctx.getImageData(0, 0, this.width, this.height);
   }
 
-  drawPixel(x, y, color) {
-    let i = (x + y * this.width) << 2;
-    this.image.data[i] = color.red;
-    this.image.data[++i] = color.green;
-    this.image.data[++i] = color.blue;
-    this.image.data[++i] = color.alpha;
+  drawTile(tile, pixels) {
+    for (let i = 0; i < tile.height; i++) {
+      const y = tile.y + i;
+      const j = (tile.x + y * this.width) << 2;
+
+      const start = (i * tile.width) << 2;
+      const end = start + (tile.width << 2);
+      const slice = pixels.slice(start, end);
+
+      this.image.data.set(slice, j);
+    }
   }
 
   render() {

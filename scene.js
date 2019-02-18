@@ -86,6 +86,30 @@ class Sphere {
     const sqrt = Math.sqrt(sqrtTerm);
     return [-dot - sqrt, -dot + sqrt];
   }
+
+  serialize() {
+    const buf = new Float64Array(7);
+
+    buf[0] = this.center.x;
+    buf[1] = this.center.y;
+    buf[2] = this.center.z;
+
+    buf[3] = this.radius;
+
+    buf[4] = this.color.red;
+    buf[5] = this.color.green;
+    buf[6] = this.color.blue;
+
+    return buf;
+  }
+
+  static deserialize(buf) {
+    return new Sphere(
+      new Vec(buf[0], buf[1], buf[2]),
+      buf[3],
+      new RGB(buf[4], buf[5], buf[6])
+    );
+  }
 }
 
 class Camera {
@@ -138,6 +162,29 @@ class Camera {
   moveEyeBack() {
     this.eye.z--;
   }
+
+  serialize() {
+    const buf = new Float64Array(8);
+
+    buf[0] = this.eye.x;
+    buf[1] = this.eye.y;
+    buf[2] = this.eye.z;
+
+    buf[3] = this.film.origin.x;
+    buf[4] = this.film.origin.y;
+    buf[5] = this.film.origin.z;
+
+    buf[6] = this.film.width;
+    buf[7] = this.film.height;
+
+    return buf;
+  }
+
+  static deserialize(buf) {
+    const eye = new Vec(buf[0], buf[1], buf[2]);
+    const film = new Film(new Vec(buf[3], buf[4], buf[5]), buf[6], buf[7]);
+    return new Camera(eye, film);
+  }
 }
 
 class Film {
@@ -179,6 +226,21 @@ class Light {
     const cosine = surface.dot(direction) / surface.length;
     return this.power * cosine / (4 * Math.PI * sqr(ray.length));
   }
+
+  serialize() {
+    const buf = new Float64Array(4);
+
+    buf[0] = this.origin.x;
+    buf[1] = this.origin.y;
+    buf[2] = this.origin.z;
+    buf[3] = this.power;
+
+    return buf;
+  }
+
+  static deserialize(buf) {
+    return new Light(new Vec(buf[0], buf[1], buf[2]), buf[3]);
+  }
 }
 
 class Scene {
@@ -186,43 +248,89 @@ class Scene {
     this.camera = camera;
     this.spheres = spheres;
     this.lights = lights;
+
+    this.onWorkerMessage = this.onWorkerMessage.bind(this);
+    this.workers = this.startWorkers();
+  }
+
+  startWorkers() {
+    const workers = [];
+
+    for (let i = 0; i < navigator.hardwareConcurrency; i++) {
+      const worker = new Worker('worker.js');
+      worker.onmessage = this.onWorkerMessage;
+      workers.push(worker);
+    }
+
+    return workers;
   }
 
   render(canvas) {
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const ray = this.camera.cast(x / canvas.width, y / canvas.height);
+    this.canvas = canvas;
+    this.jobs = [];
 
-        const nearest = this.spheres.reduce((min, sphere) => {
-          const ts = sphere.intersect(this.camera.eye, ray);
+    for (let worker of this.workers) {
+      worker.postMessage({
+        type: 'SET_SCENE',
+        payload: this.serialize(),
+      });
+    }
 
-          for (let t of ts) {
-            if (t >= EPSILON && t < min.t) {
-              return { t, sphere };
-            }
-          }
+    const width = canvas.width / 5;
+    const height = canvas.height / 5;
 
-          return min;
-        }, { t: Infinity, sphere: null });
-
-        const { t, sphere } = nearest;
-
-        if (sphere) {
-          const intersection = this.camera.eye.add(ray.scale(t));
-          const normal = intersection.subtract(sphere.center);
-
-          const power = this.lights.reduce((acc, light) => (
-            acc + light.illuminate(intersection, normal, this.spheres)
-          ), 0);
-
-          canvas.drawPixel(x, y, sphere.color.shade(power));
-        } else {
-          canvas.drawPixel(x, y, new RGB(180, 180, 180));
-        }
+    for (let y = 0; y < canvas.height; y += height) {
+      for (let x = 0; x < canvas.width; x += width) {
+        this.jobs.push({ x, y, width, height });
       }
     }
 
-    canvas.render();
+    this.pending = this.jobs.length;
+
+    for (let worker of this.workers) {
+      worker.postMessage({
+        type: 'RENDER_TILE',
+        payload: this.jobs.pop(),
+      });
+    }
+  }
+
+  serialize() {
+    const { width, height } = this.canvas;
+
+    return {
+      canvas: { width, height },
+      camera: this.camera.serialize(),
+      spheres: this.spheres.map(s => s.serialize()),
+      lights: this.lights.map(l => l.serialize()),
+    };
+  }
+
+  static deserialize({ canvas, camera, spheres, lights }) {
+    return {
+      canvas,
+      camera: Camera.deserialize(camera),
+      spheres: spheres.map(s => Sphere.deserialize(s)),
+      lights: lights.map(l => Light.deserialize(l)),
+    };
+  }
+
+  onWorkerMessage(event) {
+    const { data, currentTarget: worker } = event;
+    const { tile, pixels } = data;
+
+    this.canvas.drawTile(tile, pixels);
+
+    if (this.jobs.length > 0) {
+      worker.postMessage({
+        type: 'RENDER_TILE',
+        payload: this.jobs.pop(),
+      });
+    }
+
+    if (--this.pending === 0) {
+      this.canvas.render();
+    }
   }
 
   onKeyPress(key) {
