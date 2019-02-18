@@ -266,6 +266,7 @@ class Scene {
   }
 
   render(canvas) {
+    this.generation = performance.now();
     this.canvas = canvas;
     this.jobs = [];
 
@@ -281,7 +282,10 @@ class Scene {
 
     for (let y = 0; y < canvas.height; y += height) {
       for (let x = 0; x < canvas.width; x += width) {
-        this.jobs.push({ x, y, width, height });
+        this.jobs.push({
+          x, y, width, height,
+          generation: this.generation,
+        });
       }
     }
 
@@ -318,6 +322,11 @@ class Scene {
   onWorkerMessage(event) {
     const { data, currentTarget: worker } = event;
     const { tile, pixels } = data;
+
+    if (tile.generation < this.generation) {
+      // Ignore the message if it relates to a previous generation.
+      return;
+    }
 
     this.canvas.drawTile(tile, pixels);
 
