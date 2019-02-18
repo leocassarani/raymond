@@ -46,7 +46,7 @@ class Canvas {
 
   const scene = new Scene(camera, spheres, lights);
 
-  window.addEventListener('keyup', e => {
+  document.addEventListener('keydown', e => {
     if (scene.onKeyPress(e.key)) {
       e.preventDefault();
       scene.render(canvas);
