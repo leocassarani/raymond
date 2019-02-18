@@ -17,6 +17,8 @@ onmessage = event => {
   }
 };
 
+const SAMPLES_PER_PIXEL = 4;
+
 class Tile {
   constructor({ x, y, width, height, generation }) {
     this.x = x;
@@ -35,41 +37,51 @@ class Tile {
 
       for (let j = 0; j < this.width; j++) {
         const x = this.x + j;
-        const ray = camera.cast(x / canvas.width, y / canvas.height);
 
-        const nearest = spheres.reduce((min, sphere) => {
-          const ts = sphere.intersect(camera.eye, ray);
+        let r = 0, g = 0, b = 0, a = 0;
 
-          for (let t of ts) {
-            if (t >= EPSILON && t < min.t) {
-              return { t, sphere };
+        for (let s = 0; s < SAMPLES_PER_PIXEL; s++) {
+          const ray = camera.cast((x + Math.random()) / canvas.width, (y + Math.random()) / canvas.height);
+
+          const nearest = spheres.reduce((min, sphere) => {
+            const ts = sphere.intersect(camera.eye, ray);
+
+            for (let t of ts) {
+              if (t >= EPSILON && t < min.t) {
+                return { t, sphere };
+              }
             }
+
+            return min;
+          }, { t: Infinity, sphere: null });
+
+          const { t, sphere } = nearest;
+          let color;
+
+          if (sphere) {
+            const intersection = camera.eye.add(ray.scale(t));
+            const normal = intersection.subtract(sphere.center);
+
+            const power = lights.reduce((acc, light) => (
+              acc + light.illuminate(intersection, normal, spheres)
+            ), 0);
+
+            color = sphere.color.shade(power);
+          } else {
+            color = new RGB(180, 180, 180);
           }
 
-          return min;
-        }, { t: Infinity, sphere: null });
-
-        const { t, sphere } = nearest;
-        let color;
-
-        if (sphere) {
-          const intersection = camera.eye.add(ray.scale(t));
-          const normal = intersection.subtract(sphere.center);
-
-          const power = lights.reduce((acc, light) => (
-            acc + light.illuminate(intersection, normal, spheres)
-          ), 0);
-
-          color = sphere.color.shade(power);
-        } else {
-          color = new RGB(180, 180, 180);
+          r += color.red / SAMPLES_PER_PIXEL;
+          g += color.green / SAMPLES_PER_PIXEL;
+          b += color.blue / SAMPLES_PER_PIXEL;
+          a += color.alpha / SAMPLES_PER_PIXEL;
         }
 
         let k = (j + i * this.width) << 2;
-        buf[k++] = color.red;
-        buf[k++] = color.green;
-        buf[k++] = color.blue;
-        buf[k] = color.alpha;
+        buf[k++] = r;
+        buf[k++] = g;
+        buf[k++] = b;
+        buf[k] = a;
       }
     }
 
