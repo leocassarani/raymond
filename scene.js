@@ -345,31 +345,35 @@ class Scene {
 
   onKeyPress(key) {
     switch (event.key) {
+      case 'a':
+      case 'h':
+      case 'ArrowLeft':
+        this.camera.moveLeft();
+        break;
+      case 'd':
+      case 'l':
+      case 'ArrowRight':
+        this.camera.moveRight();
+        break;
+      case 'k':
+      case 'ArrowUp':
+        this.camera.moveUp();
+        break;
+      case 'j':
+      case 'ArrowDown':
+        this.camera.moveDown();
+        break;
       case 'w':
         this.camera.moveForward();
         break;
       case 'W':
         this.camera.moveEyeForward();
         break;
-      case 'a':
-      case 'ArrowLeft':
-        this.camera.moveLeft();
-        break;
       case 's':
         this.camera.moveBack();
         break;
       case 'S':
         this.camera.moveEyeBack();
-        break;
-      case 'd':
-      case 'ArrowRight':
-        this.camera.moveRight();
-        break;
-      case 'ArrowUp':
-        this.camera.moveUp();
-        break;
-      case 'ArrowDown':
-        this.camera.moveDown();
         break;
       default:
         return false;
