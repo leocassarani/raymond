@@ -255,8 +255,9 @@ class Scene {
 
   startWorkers() {
     const workers = [];
+    const concurrency = navigator.hardwareConcurrency || 2;
 
-    for (let i = 0; i < navigator.hardwareConcurrency; i++) {
+    for (let i = 0; i < concurrency; i++) {
       const worker = new Worker('worker.js');
       worker.onmessage = this.onWorkerMessage;
       workers.push(worker);
